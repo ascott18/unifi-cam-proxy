@@ -12,6 +12,7 @@ from unifi.cams.base import SmartDetectObjectType, UnifiCamBase
 class DahuaCam(UnifiCamBase):
     def __init__(self, args: argparse.Namespace, logger: logging.Logger) -> None:
         super().__init__(args, logger)
+        self._run_iteration = 1
         self.snapshot_dir = tempfile.mkdtemp()
         if self.args.snapshot_channel is None:
             self.args.snapshot_channel = self.args.channel - 1
@@ -90,12 +91,17 @@ class DahuaCam(UnifiCamBase):
     async def run(self) -> None:
         if self.args.motion_index == -1:
             return
-        while True:
+
+        expected_iteration = self._run_iteration
+        while expected_iteration == self._run_iteration:
             self.logger.info("Connecting to motion events API")
             try:
                 async for event in self.camera.async_event_actions(
                     eventcodes="VideoMotion,SmartMotionHuman,SmartMotionVehicle"
                 ):
+                    if expected_iteration != self._run_iteration:
+                        break
+
                     code = event[0]
                     action = event[1].get("action")
                     index = event[1].get("index")
@@ -127,3 +133,7 @@ class DahuaCam(UnifiCamBase):
             subtype = self.args.sub_stream
 
         return self.camera.rtsp_url(channel=self.args.channel, typeno=subtype)
+
+    async def close(self):
+        self._run_iteration = self._run_iteration + 1
+        await super().close()
