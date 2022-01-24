@@ -7,7 +7,8 @@ from amcrest import AmcrestCamera
 from amcrest.exceptions import CommError
 
 from unifi.cams.base import SmartDetectObjectType, UnifiCamBase
-
+from unifi.core import RetryableError
+from httpx import ConnectTimeout
 
 class DahuaCam(UnifiCamBase):
     def __init__(self, args: argparse.Namespace, logger: logging.Logger) -> None:
@@ -118,6 +119,8 @@ class DahuaCam(UnifiCamBase):
                         await self.trigger_motion_stop(object_type)
             except CommError:
                 self.logger.error("Motion API request failed, retrying")
+            except ConnectTimeout:
+                self.logger.error("Motion API request failed, retrying")
 
     def get_stream_source(self, stream_index: str) -> str:
 
@@ -126,4 +129,7 @@ class DahuaCam(UnifiCamBase):
         else:
             subtype = self.args.sub_stream
 
-        return self.camera.rtsp_url(channel=self.args.channel, typeno=subtype)
+        try:
+            return self.camera.rtsp_url(channel=self.args.channel, typeno=subtype)
+        except CommError:
+            raise RetryableError()

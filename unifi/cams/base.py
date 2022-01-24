@@ -876,7 +876,7 @@ class UnifiCamBase(metaclass=ABCMeta):
     ):
         has_spawned = stream_index in self._ffmpeg_handles
         is_dead = has_spawned and self._ffmpeg_handles[stream_index].poll() is not None
-
+        
         if not has_spawned or is_dead:
             source = self.get_stream_source(stream_index)
             cmd = (
@@ -906,6 +906,7 @@ class UnifiCamBase(metaclass=ABCMeta):
     async def close(self):
         self.logger.info("Cleaning up instance")
         self.close_streams()
+        await self.trigger_motion_stop()
 
     def close_streams(self):
         for stream in self._ffmpeg_handles:
