@@ -9,5 +9,5 @@ RUN pip install .
 
 COPY ./docker/entrypoint.sh /
 
-ENTRYPOINT ["/entrypoint.sh"]
+# ENTRYPOINT ["/entrypoint.sh"]
 CMD ["unifi-cam-proxy"]
